@@ -3,6 +3,26 @@ import ApplicationServices
 import CoreGraphics
 
 class WindowCollector {
+    typealias WindowInfoGroup = (pid: pid_t, infos: [[String: Any]])
+
+    /// Groups windows without losing the front-to-back owner order from Core Graphics.
+    static func groupWindowInfosPreservingOwnerOrder(_ infoList: [[String: Any]]) -> [WindowInfoGroup] {
+        var ownerOrder: [pid_t] = []
+        var infosByPID: [pid_t: [[String: Any]]] = [:]
+
+        for info in infoList {
+            guard let pid = info[kCGWindowOwnerPID as String] as? pid_t else { continue }
+            if infosByPID[pid] == nil {
+                ownerOrder.append(pid)
+            }
+            infosByPID[pid, default: []].append(info)
+        }
+
+        return ownerOrder.map { pid in
+            (pid: pid, infos: infosByPID[pid] ?? [])
+        }
+    }
+
     /// Collects and filters all switchable window candidates across all applications.
     static func collectCandidates() -> [WindowCandidate] {
         let options = CGWindowListOption([.optionOnScreenOnly, .excludeDesktopElements])
@@ -15,14 +35,10 @@ class WindowCollector {
         let runningApps = NSWorkspace.shared.runningApplications
         let pidToApp = Dictionary(uniqueKeysWithValues: runningApps.map { ($0.processIdentifier, $0) })
         
-        // Group window info dictionaries by PID for batch processing
-        var pidToWindowInfos: [pid_t: [[String: Any]]] = [:]
-        for info in infoList {
-            guard let pid = info[kCGWindowOwnerPID as String] as? pid_t else { continue }
-            pidToWindowInfos[pid, default: []].append(info)
-        }
-        
-        for (pid, infos) in pidToWindowInfos {
+        // Batch by application while retaining the front-to-back (last-focused) app order.
+        let windowInfoGroups = groupWindowInfosPreservingOwnerOrder(infoList)
+
+        for (pid, infos) in windowInfoGroups {
             guard let app = pidToApp[pid] else { continue }
             
             // Only include regular user-interactive apps.

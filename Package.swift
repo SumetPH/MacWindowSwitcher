@@ -16,5 +16,9 @@ let package = Package(
         .enableUpcomingFeature("BareSlashRegexLiterals")
       ]
     ),
+    .testTarget(
+      name: "SimpleWindowSwitcherTests",
+      dependencies: ["SimpleWindowSwitcher"]
+    ),
   ]
 )
