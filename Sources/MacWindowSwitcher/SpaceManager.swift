@@ -8,13 +8,13 @@ class SpaceManager {
         
         guard let connFunc = PrivateApis.SLSMainConnectionID,
               let copyFunc = PrivateApis.CGSCopyManagedDisplaySpaces else {
-            NSLog("[SimpleWindowSwitcher] [SpaceManager] SLSMainConnectionID or CGSCopyManagedDisplaySpaces is not available.")
+            NSLog("[MacWindowSwitcher] [SpaceManager] SLSMainConnectionID or CGSCopyManagedDisplaySpaces is not available.")
             return activeSpaces
         }
         
         let conn = connFunc()
         guard let displaySpaces = copyFunc(conn) as? [[String: Any]] else {
-            NSLog("[SimpleWindowSwitcher] [SpaceManager] Failed to get managed display spaces.")
+            NSLog("[MacWindowSwitcher] [SpaceManager] Failed to get managed display spaces.")
             return activeSpaces
         }
         

@@ -13,11 +13,11 @@ class PrivateApis {
     /// Resolves SLSMainConnectionID dynamically from SkyLight.framework
     static let SLSMainConnectionID: SLSMainConnectionIDType? = {
         guard let handle = dlopen("/System/Library/PrivateFrameworks/SkyLight.framework/SkyLight", RTLD_LAZY) else {
-            NSLog("[SimpleWindowSwitcher] [PrivateApis] Failed to dlopen SkyLight.framework")
+            NSLog("[MacWindowSwitcher] [PrivateApis] Failed to dlopen SkyLight.framework")
             return nil
         }
         guard let sym = dlsym(handle, "SLSMainConnectionID") else {
-            NSLog("[SimpleWindowSwitcher] [PrivateApis] Failed to locate SLSMainConnectionID")
+            NSLog("[MacWindowSwitcher] [PrivateApis] Failed to locate SLSMainConnectionID")
             return nil
         }
         return unsafeBitCast(sym, to: SLSMainConnectionIDType.self)
@@ -29,7 +29,7 @@ class PrivateApis {
             return nil
         }
         guard let sym = dlsym(handle, "CGSCopyManagedDisplaySpaces") else {
-            NSLog("[SimpleWindowSwitcher] [PrivateApis] Failed to locate CGSCopyManagedDisplaySpaces")
+            NSLog("[MacWindowSwitcher] [PrivateApis] Failed to locate CGSCopyManagedDisplaySpaces")
             return nil
         }
         return unsafeBitCast(sym, to: CGSCopyManagedDisplaySpacesType.self)
@@ -41,7 +41,7 @@ class PrivateApis {
             return nil
         }
         guard let sym = dlsym(handle, "CGSCopySpacesForWindows") else {
-            NSLog("[SimpleWindowSwitcher] [PrivateApis] Failed to locate CGSCopySpacesForWindows")
+            NSLog("[MacWindowSwitcher] [PrivateApis] Failed to locate CGSCopySpacesForWindows")
             return nil
         }
         return unsafeBitCast(sym, to: CGSCopySpacesForWindowsType.self)
@@ -53,7 +53,7 @@ class PrivateApis {
             return nil
         }
         guard let sym = dlsym(handle, "_AXUIElementGetWindow") else {
-            NSLog("[SimpleWindowSwitcher] [PrivateApis] Failed to locate _AXUIElementGetWindow")
+            NSLog("[MacWindowSwitcher] [PrivateApis] Failed to locate _AXUIElementGetWindow")
             return nil
         }
         return unsafeBitCast(sym, to: AXUIElementGetWindowType.self)

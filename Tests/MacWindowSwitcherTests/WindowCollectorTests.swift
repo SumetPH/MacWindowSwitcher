@@ -1,6 +1,6 @@
 import CoreGraphics
 import XCTest
-@testable import SimpleWindowSwitcher
+@testable import MacWindowSwitcher
 
 final class WindowCollectorTests: XCTestCase {
     func testGroupsWindowsByFirstSeenOwnerOrder() {

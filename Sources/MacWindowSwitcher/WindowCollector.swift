@@ -27,7 +27,7 @@ class WindowCollector {
     static func collectCandidates() -> [WindowCandidate] {
         let options = CGWindowListOption([.optionOnScreenOnly, .excludeDesktopElements])
         guard let infoList = CGWindowListCopyWindowInfo(options, kCGNullWindowID) as? [[String: Any]] else {
-            NSLog("[SimpleWindowSwitcher] [WindowCollector] Failed to retrieve window list.")
+            NSLog("[MacWindowSwitcher] [WindowCollector] Failed to retrieve window list.")
             return []
         }
         

@@ -34,7 +34,7 @@ private func keyboardEventCallback(
             if let machPort = tap.machPort {
                 CGEvent.tapEnable(tap: machPort, enable: true)
             }
-            NSLog("[SimpleWindowSwitcher] [KeyboardEventTap] Re-enabled event tap due to timeout or user input disable.")
+            NSLog("[MacWindowSwitcher] [KeyboardEventTap] Re-enabled event tap due to timeout or user input disable.")
         }
         return Unmanaged.passUnretained(event)
     }
@@ -95,20 +95,20 @@ class KeyboardEventTap {
         )
         
         guard let machPort else {
-            NSLog("[SimpleWindowSwitcher] [KeyboardEventTap] Failed to create event tap. Accessibility permission is likely missing.")
+            NSLog("[MacWindowSwitcher] [KeyboardEventTap] Failed to create event tap. Accessibility permission is likely missing.")
             return false
         }
         
         runLoopSource = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, machPort, 0)
         guard let runLoopSource else {
-            NSLog("[SimpleWindowSwitcher] [KeyboardEventTap] Failed to create run loop source.")
+            NSLog("[MacWindowSwitcher] [KeyboardEventTap] Failed to create run loop source.")
             return false
         }
         
         CFRunLoopAddSource(CFRunLoopGetMain(), runLoopSource, .commonModes)
         CGEvent.tapEnable(tap: machPort, enable: true)
         
-        NSLog("[SimpleWindowSwitcher] [KeyboardEventTap] Event tap started successfully.")
+        NSLog("[MacWindowSwitcher] [KeyboardEventTap] Event tap started successfully.")
         return true
     }
     
@@ -122,6 +122,6 @@ class KeyboardEventTap {
         }
         machPort = nil
         runLoopSource = nil
-        NSLog("[SimpleWindowSwitcher] [KeyboardEventTap] Event tap stopped.")
+        NSLog("[MacWindowSwitcher] [KeyboardEventTap] Event tap stopped.")
     }
 }

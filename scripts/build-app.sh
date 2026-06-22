@@ -12,8 +12,9 @@ case "$configuration" in
 esac
 
 project_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-product_name="SimpleWindowSwitcher"
-executable_name="SimpleWindowSwitcher"
+product_name="Mac Window Switcher"
+executable_name="MacWindowSwitcher"
+bundle_identifier="dev.sumetph.MacWindowSwitcher"
 app_dir="$project_root/.build/app/$product_name.app"
 contents_dir="$app_dir/Contents"
 icon_source="$project_root/Assets/AppIcon.png"
@@ -58,15 +59,15 @@ cat > "$contents_dir/Info.plist" <<'PLIST'
   <key>CFBundleDevelopmentRegion</key>
   <string>en</string>
   <key>CFBundleExecutable</key>
-  <string>SimpleWindowSwitcher</string>
+  <string>MacWindowSwitcher</string>
   <key>CFBundleIdentifier</key>
-  <string>dev.sumetph.SimpleWindowSwitcher</string>
+  <string>dev.sumetph.MacWindowSwitcher</string>
   <key>CFBundleIconFile</key>
   <string>AppIcon.icns</string>
   <key>CFBundleInfoDictionaryVersion</key>
   <string>6.0</string>
   <key>CFBundleName</key>
-  <string>SimpleWindowSwitcher</string>
+  <string>Mac Window Switcher</string>
   <key>CFBundlePackageType</key>
   <string>APPL</string>
   <key>CFBundleShortVersionString</key>
@@ -78,15 +79,37 @@ cat > "$contents_dir/Info.plist" <<'PLIST'
   <key>LSUIElement</key>
   <true/>
   <key>NSAccessibilityUsageDescription</key>
-  <string>SimpleWindowSwitcher needs accessibility permission to manage and switch windows.</string>
+  <string>Mac Window Switcher needs accessibility permission to manage and switch windows.</string>
 </dict>
 </plist>
 PLIST
 
 plutil -lint "$contents_dir/Info.plist" >/dev/null
 
-# Sign with Apple Development cert by default, or ad-hoc if not available.
-# We'll use "-" for ad-hoc if no identity is specified.
-codesign --force --sign "${CODE_SIGN_IDENTITY:-"-"}" "$app_dir"
+signing_identity="${CODE_SIGN_IDENTITY:-}"
+if [ "$signing_identity" = "-" ] && [ "${ALLOW_AD_HOC_SIGNING:-0}" != "1" ]; then
+  echo "Ad-hoc signing changes identity after every rebuild. Set ALLOW_AD_HOC_SIGNING=1 only for isolated testing." >&2
+  exit 1
+fi
 
-echo "Built: $app_dir"
+if [ -z "$signing_identity" ]; then
+  signing_identity="$(security find-identity -v -p codesigning 2>/dev/null \
+    | sed -n 's/.*"\(MacWindowSwitcher Local Development\|Apple Development: [^"]*\|Developer ID Application: [^"]*\)".*/\1/p' \
+    | head -n 1)"
+fi
+
+if [ -z "$signing_identity" ]; then
+  cat >&2 <<'MESSAGE'
+No stable code-signing identity was found.
+
+Run scripts/setup-local-signing.sh once, or provide CODE_SIGN_IDENTITY.
+Ad-hoc signing is intentionally not used because each rebuild changes the app's
+identity and causes macOS to request Accessibility permission again.
+MESSAGE
+  exit 1
+fi
+
+codesign --force --options runtime --identifier "$bundle_identifier" --sign "$signing_identity" "$app_dir"
+codesign --verify --deep --strict --verbose=2 "$app_dir"
+
+echo "Built and signed with '$signing_identity': $app_dir"

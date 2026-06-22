@@ -3,22 +3,22 @@
 import PackageDescription
 
 let package = Package(
-  name: "SimpleWindowSwitcher",
+  name: "MacWindowSwitcher",
   platforms: [.macOS(.v13)],
   products: [
-    .executable(name: "SimpleWindowSwitcher", targets: ["SimpleWindowSwitcher"]),
+    .executable(name: "MacWindowSwitcher", targets: ["MacWindowSwitcher"]),
   ],
   targets: [
     .executableTarget(
-      name: "SimpleWindowSwitcher",
+      name: "MacWindowSwitcher",
       dependencies: [],
       swiftSettings: [
         .enableUpcomingFeature("BareSlashRegexLiterals")
       ]
     ),
     .testTarget(
-      name: "SimpleWindowSwitcherTests",
-      dependencies: ["SimpleWindowSwitcher"]
+      name: "MacWindowSwitcherTests",
+      dependencies: ["MacWindowSwitcher"]
     ),
   ]
 )

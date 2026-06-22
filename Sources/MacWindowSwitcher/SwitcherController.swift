@@ -125,7 +125,7 @@ class SwitcherController: KeyboardEventTapDelegate {
     private func filterByCurrentSpace(_ list: [WindowCandidate]) -> [WindowCandidate] {
         let activeSpaces = SpaceManager.getActiveSpaceIDs()
         if activeSpaces.isEmpty {
-            NSLog("[SimpleWindowSwitcher] [SwitcherController] Active Spaces list empty. Skipping space filter.")
+            NSLog("[MacWindowSwitcher] [SwitcherController] Active Spaces list empty. Skipping space filter.")
             return list
         }
         

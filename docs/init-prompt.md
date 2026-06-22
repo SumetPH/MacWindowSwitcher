@@ -1,6 +1,6 @@
 You are an expert macOS Swift/AppKit engineer.
 
-Build a macOS app called `SimpleWindowSwitcher`.
+Build a macOS app called `MacWindowSwitcher`.
 
 The app is a custom Cmd+Tab replacement focused on window/app switching.
 

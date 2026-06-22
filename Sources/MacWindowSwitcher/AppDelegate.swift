@@ -10,7 +10,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var permissionTimer: Timer?
     
     func applicationDidFinishLaunching(_ notification: Notification) {
-        NSLog("[SimpleWindowSwitcher] [AppDelegate] Application launching...")
+        NSLog("[MacWindowSwitcher] [AppDelegate] Application launching...")
         
         setupStatusItem()
         
@@ -25,15 +25,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
     
     func applicationWillTerminate(_ notification: Notification) {
-        NSLog("[SimpleWindowSwitcher] [AppDelegate] Application terminating...")
+        NSLog("[MacWindowSwitcher] [AppDelegate] Application terminating...")
         permissionTimer?.invalidate()
         controller.stop()
     }
     
     private func startApp() {
-        NSLog("[SimpleWindowSwitcher] [AppDelegate] Starting event tap...")
+        NSLog("[MacWindowSwitcher] [AppDelegate] Starting event tap...")
         if !controller.start() {
-            NSLog("[SimpleWindowSwitcher] [AppDelegate] Failed to start event tap. Showing permission window.")
+            NSLog("[MacWindowSwitcher] [AppDelegate] Failed to start event tap. Showing permission window.")
             showPermissionWindow()
         }
     }
@@ -43,13 +43,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         guard let button = statusItem?.button else { return }
         
         if #available(macOS 11.0, *) {
-            button.image = NSImage(systemSymbolName: "rectangle.arrowtriangle.2.outward", accessibilityDescription: "SimpleWindowSwitcher")
+            button.image = NSImage(systemSymbolName: "rectangle.arrowtriangle.2.outward", accessibilityDescription: "Mac Window Switcher")
         } else {
             button.title = "❖"
         }
         
         let menu = NSMenu()
-        menu.addItem(NSMenuItem(title: "SimpleWindowSwitcher (Active)", action: nil, keyEquivalent: ""))
+        menu.addItem(NSMenuItem(title: "Mac Window Switcher (Active)", action: nil, keyEquivalent: ""))
         menu.addItem(NSMenuItem.separator())
         menu.addItem(NSMenuItem(title: "Check Accessibility Permissions", action: #selector(requestPermissions), keyEquivalent: ""))
         menu.addItem(NSMenuItem(title: "System Settings...", action: #selector(openSettingsAction), keyEquivalent: ""))
@@ -72,7 +72,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             backing: .buffered,
             defer: false
         )
-        window.title = "SimpleWindowSwitcher Setup"
+        window.title = "Mac Window Switcher Setup"
         window.center()
         window.isReleasedWhenClosed = false
         
@@ -87,7 +87,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         titleLabel.alignment = .center
         container.addArrangedSubview(titleLabel)
         
-        let descLabel = NSTextField(labelWithString: "SimpleWindowSwitcher requires Accessibility privileges to monitor the Cmd+Tab hotkey and bring selected windows to the front.")
+        let descLabel = NSTextField(labelWithString: "Mac Window Switcher requires Accessibility privileges to monitor the Cmd+Tab hotkey and bring selected windows to the front.")
         descLabel.font = NSFont.systemFont(ofSize: 12)
         descLabel.textColor = .secondaryLabelColor
         descLabel.alignment = .center
@@ -130,7 +130,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             Task { @MainActor in
                 guard let self else { return }
                 if PermissionManager.checkAccessibilityPermission() {
-                    NSLog("[SimpleWindowSwitcher] [AppDelegate] Accessibility permission granted dynamically!")
+                    NSLog("[MacWindowSwitcher] [AppDelegate] Accessibility permission granted dynamically!")
                     self.permissionTimer?.invalidate()
                     self.permissionTimer = nil
                     self.permissionWindow?.close()
