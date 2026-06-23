@@ -11,10 +11,7 @@ let package = Package(
   targets: [
     .executableTarget(
       name: "MacWindowSwitcher",
-      dependencies: [],
-      swiftSettings: [
-        .enableUpcomingFeature("BareSlashRegexLiterals")
-      ]
+      dependencies: []
     ),
     .testTarget(
       name: "MacWindowSwitcherTests",
