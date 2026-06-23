@@ -40,11 +40,16 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
     
     private func setupStatusItem() {
-        statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+        statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
         guard let button = statusItem?.button else { return }
         
         if #available(macOS 11.0, *) {
-            button.image = NSImage(systemSymbolName: "rectangle.arrowtriangle.2.outward", accessibilityDescription: "Mac Window Switcher")
+            let config = NSImage.SymbolConfiguration(pointSize: 13.0, weight: .regular)
+            if let image = NSImage(systemSymbolName: "macwindow", accessibilityDescription: "Mac Window Switcher"),
+               let configuredImage = image.withSymbolConfiguration(config) {
+                configuredImage.isTemplate = true
+                button.image = configuredImage
+            }
         } else {
             button.title = "❖"
         }
