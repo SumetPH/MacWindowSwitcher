@@ -14,7 +14,7 @@ esac
 project_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 product_name="Mac Window Switcher"
 executable_name="MacWindowSwitcher"
-app_dir="$project_root/.build/app/$product_name.app"
+app_dir="$project_root/dist/$product_name.app"
 contents_dir="$app_dir/Contents"
 icon_source="$project_root/Assets/AppIcon.png"
 iconset_dir="$project_root/.build/app/AppIcon.iconset"
