@@ -83,7 +83,7 @@ class CandidateCardView: NSView {
         if isSelected {
             // Bright highlight with active accent border
             self.layer?.backgroundColor = NSColor(white: 1.0, alpha: 0.18).cgColor
-            self.layer?.borderColor = NSColor.systemBlue.cgColor
+            self.layer?.borderColor = NSColor.controlAccentColor.cgColor
             self.layer?.borderWidth = 2.0
         } else {
             // Subtle translucency
