@@ -1,5 +1,6 @@
 import AppKit
 import Foundation
+import ServiceManagement
 
 @MainActor
 class AppDelegate: NSObject, NSApplicationDelegate {
@@ -49,9 +50,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
         
         let menu = NSMenu()
+        menu.delegate = self
         menu.addItem(NSMenuItem(title: "Mac Window Switcher (Active)", action: nil, keyEquivalent: ""))
         menu.addItem(NSMenuItem.separator())
         menu.addItem(NSMenuItem(title: "Check Accessibility Permissions", action: #selector(requestPermissions), keyEquivalent: ""))
+        
+        let launchItem = NSMenuItem(title: "Launch at Login", action: #selector(toggleLaunchAtLogin(_:)), keyEquivalent: "")
+        launchItem.state = SMAppService.mainApp.status == .enabled ? .on : .off
+        menu.addItem(launchItem)
+        
         menu.addItem(NSMenuItem(title: "System Settings...", action: #selector(openSettingsAction), keyEquivalent: ""))
         menu.addItem(NSMenuItem.separator())
         menu.addItem(NSMenuItem(title: "Quit", action: #selector(quitAction), keyEquivalent: "q"))
@@ -153,5 +160,36 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     
     @objc private func quitAction() {
         NSApp.terminate(nil)
+    }
+    
+    @objc private func toggleLaunchAtLogin(_ sender: NSMenuItem) {
+        let appService = SMAppService.mainApp
+        if appService.status == .enabled {
+            do {
+                try appService.unregister()
+                sender.state = .off
+                NSLog("[MacWindowSwitcher] [AppDelegate] Disabled Launch at Login")
+            } catch {
+                NSLog("[MacWindowSwitcher] [AppDelegate] Failed to unregister SMAppService: \(error.localizedDescription)")
+            }
+        } else {
+            do {
+                try appService.register()
+                sender.state = .on
+                NSLog("[MacWindowSwitcher] [AppDelegate] Enabled Launch at Login")
+            } catch {
+                NSLog("[MacWindowSwitcher] [AppDelegate] Failed to register SMAppService: \(error.localizedDescription)")
+            }
+        }
+    }
+}
+
+// MARK: - NSMenuDelegate
+
+extension AppDelegate: NSMenuDelegate {
+    func menuNeedsUpdate(_ menu: NSMenu) {
+        if let launchItem = menu.items.first(where: { $0.action == #selector(toggleLaunchAtLogin(_:)) }) {
+            launchItem.state = SMAppService.mainApp.status == .enabled ? .on : .off
+        }
     }
 }
