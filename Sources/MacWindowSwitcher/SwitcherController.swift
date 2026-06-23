@@ -197,6 +197,7 @@ class SwitcherController: KeyboardEventTapDelegate {
     }
     
     private func hideOverlay() {
+        overlayWindow?.orderOut(nil)
         overlayWindow?.close()
         overlayWindow = nil
         overlayView = nil

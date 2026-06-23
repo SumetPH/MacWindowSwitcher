@@ -16,6 +16,7 @@ class SwitcherOverlayWindow: NSPanel {
         self.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         self.ignoresMouseEvents = false // Keep false so mouse hover events can be tracked
         self.hidesOnDeactivate = false
+        self.animationBehavior = .none
     }
     
     // Ensure the overlay window never steals keyboard/main focus
