@@ -5,7 +5,8 @@ import ServiceManagement
 @MainActor
 class AppDelegate: NSObject, NSApplicationDelegate {
     private let controller = SwitcherController()
-    private var statusItem: NSStatusItem?
+    private var settings: AppSettings?
+    private var menuBarController: MenuBarController?
     
     private var permissionWindow: NSWindow?
     private var permissionTimer: Timer?
@@ -13,7 +14,23 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSLog("[MacWindowSwitcher] [AppDelegate] Application launching...")
         
-        setupStatusItem()
+        let appSettings = AppSettings()
+        self.settings = appSettings
+        self.menuBarController = MenuBarController(settings: appSettings)
+        
+        appSettings.onChange = { [weak self] values in
+            guard let self else { return }
+            if values.switcherEnabled {
+                if PermissionManager.checkAccessibilityPermission() {
+                    _ = self.controller.start()
+                } else {
+                    PermissionManager.requestAccessibilityPermissionPrompt()
+                    self.showPermissionWindow()
+                }
+            } else {
+                self.controller.stop()
+            }
+        }
         
         // Check for accessibility permissions at startup
         if PermissionManager.checkAccessibilityPermission() {
@@ -32,41 +49,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
     
     private func startApp() {
+        guard let settings, settings.switcherEnabled else { return }
         NSLog("[MacWindowSwitcher] [AppDelegate] Starting event tap...")
         if !controller.start() {
             NSLog("[MacWindowSwitcher] [AppDelegate] Failed to start event tap. Showing permission window.")
             showPermissionWindow()
         }
-    }
-    
-    private func setupStatusItem() {
-        statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
-        guard let button = statusItem?.button else { return }
-        
-        if #available(macOS 11.0, *) {
-            if let image = NSImage(systemSymbolName: "macwindow", accessibilityDescription: "Mac Window Switcher") {
-                image.isTemplate = true
-                button.image = image
-            }
-        } else {
-            button.title = "❖"
-        }
-        
-        let menu = NSMenu()
-        menu.delegate = self
-        menu.addItem(NSMenuItem(title: "Mac Window Switcher (Active)", action: nil, keyEquivalent: ""))
-        menu.addItem(NSMenuItem.separator())
-        menu.addItem(NSMenuItem(title: "Check Accessibility Permissions", action: #selector(requestPermissions), keyEquivalent: ""))
-        
-        let launchItem = NSMenuItem(title: "Launch at Login", action: #selector(toggleLaunchAtLogin(_:)), keyEquivalent: "")
-        launchItem.state = SMAppService.mainApp.status == .enabled ? .on : .off
-        menu.addItem(launchItem)
-        
-        menu.addItem(NSMenuItem(title: "System Settings...", action: #selector(openSettingsAction), keyEquivalent: ""))
-        menu.addItem(NSMenuItem.separator())
-        menu.addItem(NSMenuItem(title: "Quit", action: #selector(quitAction), keyEquivalent: "q"))
-        
-        statusItem?.menu = menu
     }
     
     private func showPermissionWindow() {
@@ -157,42 +145,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         PermissionManager.openAccessibilitySettings()
     }
     
-    @objc private func requestPermissions() {
-        PermissionManager.requestAccessibilityPermissionPrompt()
-    }
-    
     @objc private func quitAction() {
         NSApp.terminate(nil)
-    }
-    
-    @objc private func toggleLaunchAtLogin(_ sender: NSMenuItem) {
-        let appService = SMAppService.mainApp
-        if appService.status == .enabled {
-            do {
-                try appService.unregister()
-                sender.state = .off
-                NSLog("[MacWindowSwitcher] [AppDelegate] Disabled Launch at Login")
-            } catch {
-                NSLog("[MacWindowSwitcher] [AppDelegate] Failed to unregister SMAppService: \(error.localizedDescription)")
-            }
-        } else {
-            do {
-                try appService.register()
-                sender.state = .on
-                NSLog("[MacWindowSwitcher] [AppDelegate] Enabled Launch at Login")
-            } catch {
-                NSLog("[MacWindowSwitcher] [AppDelegate] Failed to register SMAppService: \(error.localizedDescription)")
-            }
-        }
-    }
-}
-
-// MARK: - NSMenuDelegate
-
-extension AppDelegate: NSMenuDelegate {
-    func menuNeedsUpdate(_ menu: NSMenu) {
-        if let launchItem = menu.items.first(where: { $0.action == #selector(toggleLaunchAtLogin(_:)) }) {
-            launchItem.state = SMAppService.mainApp.status == .enabled ? .on : .off
-        }
     }
 }
