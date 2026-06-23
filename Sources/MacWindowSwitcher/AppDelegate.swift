@@ -44,11 +44,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         guard let button = statusItem?.button else { return }
         
         if #available(macOS 11.0, *) {
-            let config = NSImage.SymbolConfiguration(pointSize: 13.0, weight: .regular)
-            if let image = NSImage(systemSymbolName: "macwindow", accessibilityDescription: "Mac Window Switcher"),
-               let configuredImage = image.withSymbolConfiguration(config) {
-                configuredImage.isTemplate = true
-                button.image = configuredImage
+            if let image = NSImage(systemSymbolName: "macwindow", accessibilityDescription: "Mac Window Switcher") {
+                image.isTemplate = true
+                button.image = image
             }
         } else {
             button.title = "❖"
