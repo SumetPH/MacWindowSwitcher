@@ -55,6 +55,7 @@ class WindowCollector {
             let axStatus = AXUIElementCopyAttributeValue(appElement, kAXWindowsAttribute as CFString, &windowsRef)
             
             var axWindowMap: [CGWindowID: AXUIElement] = [:]
+            let canMatchAXWindows = axStatus == .success && PrivateApis.AXUIElementGetWindow != nil
             if axStatus == .success, let axWindows = windowsRef as? [AXUIElement] {
                 for axWindow in axWindows {
                     var axWindowID: CGWindowID = 0
@@ -80,30 +81,21 @@ class WindowCollector {
                 
                 // Check minimized state or invalid AX roles
                 let axWindow = axWindowMap[windowID]
+                if canMatchAXWindows, axWindow == nil {
+                    continue
+                }
+
                 if let axWindow = axWindow {
-                    var minimizedValue: AnyObject?
-                    if AXUIElementCopyAttributeValue(axWindow, kAXMinimizedAttribute as CFString, &minimizedValue) == .success,
-                       let isMinimized = minimizedValue as? Bool, isMinimized {
-                        continue
-                    }
-                    
-                    var roleValue: AnyObject?
-                    if AXUIElementCopyAttributeValue(axWindow, kAXRoleAttribute as CFString, &roleValue) == .success,
-                       let role = roleValue as? String, role != kAXWindowRole {
+                    if !isSwitchableAXWindow(axWindow) {
                         continue
                     }
                 }
                 
                 let appName = app.localizedName ?? (info[kCGWindowOwnerName as String] as? String ?? "")
-                var windowTitle = info[kCGWindowName as String] as? String ?? ""
-                
-                // Fallback title query via AX if window info has empty string
-                if windowTitle.isEmpty, let axWindow = axWindow {
-                    var axTitle: AnyObject?
-                    if AXUIElementCopyAttributeValue(axWindow, kAXTitleAttribute as CFString, &axTitle) == .success,
-                       let titleStr = axTitle as? String {
-                        windowTitle = titleStr
-                    }
+                let cgWindowTitle = info[kCGWindowName as String] as? String ?? ""
+                let windowTitle = titleForWindow(cgTitle: cgWindowTitle, axWindow: axWindow)
+                if isTransientChromeFindWindow(appName: appName, title: windowTitle) {
+                    continue
                 }
                 
                 let appIcon = app.icon ?? NSWorkspace.shared.icon(forFile: app.bundleURL?.path ?? "")
@@ -122,5 +114,51 @@ class WindowCollector {
         }
         
         return candidates
+    }
+
+    private static func isSwitchableAXWindow(_ axWindow: AXUIElement) -> Bool {
+        var minimizedValue: AnyObject?
+        if AXUIElementCopyAttributeValue(axWindow, kAXMinimizedAttribute as CFString, &minimizedValue) == .success,
+           let isMinimized = minimizedValue as? Bool, isMinimized {
+            return false
+        }
+
+        var roleValue: AnyObject?
+        if AXUIElementCopyAttributeValue(axWindow, kAXRoleAttribute as CFString, &roleValue) == .success,
+           let role = roleValue as? String, role != kAXWindowRole {
+            return false
+        }
+
+        var subroleValue: AnyObject?
+        if AXUIElementCopyAttributeValue(axWindow, kAXSubroleAttribute as CFString, &subroleValue) == .success,
+           let subrole = subroleValue as? String,
+           subrole != kAXStandardWindowSubrole {
+            return false
+        }
+
+        return true
+    }
+
+    private static func titleForWindow(cgTitle: String, axWindow: AXUIElement?) -> String {
+        if !cgTitle.isEmpty {
+            return cgTitle
+        }
+
+        guard let axWindow = axWindow else {
+            return ""
+        }
+
+        var axTitle: AnyObject?
+        if AXUIElementCopyAttributeValue(axWindow, kAXTitleAttribute as CFString, &axTitle) == .success,
+           let title = axTitle as? String,
+           !title.isEmpty {
+            return title
+        }
+
+        return cgTitle
+    }
+
+    private static func isTransientChromeFindWindow(appName: String, title: String) -> Bool {
+        appName == "Google Chrome" && title == "Find in page"
     }
 }
