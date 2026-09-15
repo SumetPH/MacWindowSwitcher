@@ -6,9 +6,11 @@ final class MenuBarController: NSObject {
   private let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
   private let panel: NSPanel
   private var eventMonitors: [Any] = []
+  private var isMenuBarIconHidden = false
+  private var isShowingTemporaryIcon = false
 
   init(settings: AppSettings) {
-    let contentSize = NSSize(width: 300, height: 110)
+    let contentSize = NSSize(width: 300, height: 140)
     panel = MenuBarPanel(
       contentRect: NSRect(origin: .zero, size: contentSize),
       styleMask: [.borderless, .nonactivatingPanel],
@@ -17,6 +19,9 @@ final class MenuBarController: NSObject {
     )
 
     super.init()
+
+    isMenuBarIconHidden = settings.hideMenuBarIcon
+    statusItem.isVisible = !isMenuBarIconHidden
 
     if let button = statusItem.button {
       if #available(macOS 11.0, *) {
@@ -47,6 +52,26 @@ final class MenuBarController: NSObject {
         .background(.regularMaterial)
         .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
     )
+  }
+
+  func setMenuBarIconHidden(_ hidden: Bool) {
+    isMenuBarIconHidden = hidden
+    if !hidden {
+      isShowingTemporaryIcon = false
+    }
+    statusItem.isVisible = !hidden || isShowingTemporaryIcon
+  }
+
+  func showPanelTemporarilyIfNeeded() {
+    guard isMenuBarIconHidden else { return }
+
+    isShowingTemporaryIcon = true
+    statusItem.isVisible = true
+
+    DispatchQueue.main.async { [weak self] in
+      guard let self, !self.panel.isVisible, let button = self.statusItem.button else { return }
+      self.showPanel(relativeTo: button)
+    }
   }
 
   @objc private func togglePopover(_ sender: NSStatusBarButton) {
@@ -82,6 +107,11 @@ final class MenuBarController: NSObject {
     }
     panel.orderOut(nil)
     removeEventMonitors()
+
+    if isShowingTemporaryIcon {
+      isShowingTemporaryIcon = false
+      statusItem.isVisible = !isMenuBarIconHidden
+    }
   }
 
   private func installEventMonitors() {
@@ -151,21 +181,30 @@ private struct MenuBarView: View {
 
       Divider()
 
-      HStack {
-        Toggle("Launch at Login", isOn: $settings.launchAtLogin)
+      VStack(alignment: .leading, spacing: 8) {
+        Toggle("Hide Menu Bar Icon", isOn: $settings.hideMenuBarIcon)
           .toggleStyle(.checkbox)
           .font(.caption)
           .foregroundStyle(.secondary)
           .controlSize(.small)
-          .accessibilityLabel("Launch at login")
+          .accessibilityLabel("Hide menu bar icon")
 
-        Spacer()
+        HStack {
+          Toggle("Launch at Login", isOn: $settings.launchAtLogin)
+            .toggleStyle(.checkbox)
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .controlSize(.small)
+            .accessibilityLabel("Launch at login")
 
-        Button("Quit", systemImage: "power") {
-          NSApplication.shared.terminate(nil)
+          Spacer()
+
+          Button("Quit", systemImage: "power") {
+            NSApplication.shared.terminate(nil)
+          }
+          .buttonStyle(.borderless)
+          .font(.caption)
         }
-        .buttonStyle(.borderless)
-        .font(.caption)
       }
     }
     .padding(16)

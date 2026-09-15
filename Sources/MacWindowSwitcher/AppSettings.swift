@@ -10,22 +10,31 @@ final class AppSettings: ObservableObject {
 
   private enum Key {
     static let switcherEnabled = "switcherEnabled"
+    static let hideMenuBarIcon = "hideMenuBarIcon"
   }
 
   @Published var switcherEnabled: Bool {
     didSet { saveAndNotify() }
+  }
+  @Published var hideMenuBarIcon: Bool {
+    didSet {
+      defaults.set(hideMenuBarIcon, forKey: Key.hideMenuBarIcon)
+      onMenuBarIconVisibilityChange?(hideMenuBarIcon)
+    }
   }
   @Published var launchAtLogin: Bool {
     didSet { updateLaunchAtLogin() }
   }
 
   var onChange: ((Values) -> Void)?
+  var onMenuBarIconVisibilityChange: ((Bool) -> Void)?
 
   private let defaults: UserDefaults
 
   init(defaults: UserDefaults = .standard) {
     self.defaults = defaults
     switcherEnabled = defaults.object(forKey: Key.switcherEnabled) as? Bool ?? true
+    hideMenuBarIcon = defaults.object(forKey: Key.hideMenuBarIcon) as? Bool ?? false
     launchAtLogin = SMAppService.mainApp.status == .enabled
   }
 

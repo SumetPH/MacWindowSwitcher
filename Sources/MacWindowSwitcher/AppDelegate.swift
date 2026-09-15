@@ -17,6 +17,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let appSettings = AppSettings()
         self.settings = appSettings
         self.menuBarController = MenuBarController(settings: appSettings)
+
+        appSettings.onMenuBarIconVisibilityChange = { [weak self] hidden in
+            self?.menuBarController?.setMenuBarIconHidden(hidden)
+        }
         
         appSettings.onChange = { [weak self] values in
             guard let self else { return }
@@ -35,11 +39,17 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Check for accessibility permissions at startup
         if PermissionManager.checkAccessibilityPermission() {
             startApp()
+            menuBarController?.showPanelTemporarilyIfNeeded()
         } else {
             // Trigger prompt and show custom instructions window
             PermissionManager.requestAccessibilityPermissionPrompt()
             showPermissionWindow()
         }
+    }
+
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        menuBarController?.showPanelTemporarilyIfNeeded()
+        return true
     }
     
     func applicationWillTerminate(_ notification: Notification) {
@@ -134,6 +144,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                     self.permissionWindow?.close()
                     self.permissionWindow = nil
                     self.startApp()
+                    self.menuBarController?.showPanelTemporarilyIfNeeded()
                 }
             }
         }
