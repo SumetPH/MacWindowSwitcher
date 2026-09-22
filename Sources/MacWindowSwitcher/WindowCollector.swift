@@ -6,7 +6,10 @@ class WindowCollector {
     typealias WindowInfoGroup = (pid: pid_t, infos: [[String: Any]])
 
     /// Groups windows without losing the front-to-back owner order from Core Graphics.
-    static func groupWindowInfosPreservingOwnerOrder(_ infoList: [[String: Any]]) -> [WindowInfoGroup] {
+    static func groupWindowInfosPreservingOwnerOrder(
+        _ infoList: [[String: Any]],
+        frontmostPID: pid_t? = nil
+    ) -> [WindowInfoGroup] {
         var ownerOrder: [pid_t] = []
         var infosByPID: [pid_t: [[String: Any]]] = [:]
 
@@ -18,9 +21,17 @@ class WindowCollector {
             infosByPID[pid, default: []].append(info)
         }
 
-        return ownerOrder.map { pid in
+        var groups = ownerOrder.map { pid in
             (pid: pid, infos: infosByPID[pid] ?? [])
         }
+
+        if let frontmostPID,
+           let index = groups.firstIndex(where: { $0.pid == frontmostPID }),
+           index != 0 {
+            groups.insert(groups.remove(at: index), at: 0)
+        }
+
+        return groups
     }
 
     /// Collects and filters all switchable window candidates across all applications.
@@ -36,7 +47,10 @@ class WindowCollector {
         let pidToApp = Dictionary(uniqueKeysWithValues: runningApps.map { ($0.processIdentifier, $0) })
         
         // Batch by application while retaining the front-to-back (last-focused) app order.
-        let windowInfoGroups = groupWindowInfosPreservingOwnerOrder(infoList)
+        let windowInfoGroups = groupWindowInfosPreservingOwnerOrder(
+            infoList,
+            frontmostPID: NSWorkspace.shared.frontmostApplication?.processIdentifier
+        )
 
         for (pid, infos) in windowInfoGroups {
             guard let app = pidToApp[pid] else { continue }
