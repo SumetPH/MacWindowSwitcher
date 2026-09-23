@@ -53,7 +53,7 @@ class WindowCollector {
         )
 
         for (pid, infos) in windowInfoGroups {
-            guard let app = pidToApp[pid] else { continue }
+            guard let app = pidToApp[pid] ?? NSRunningApplication(processIdentifier: pid) else { continue }
             
             // Only include regular user-interactive apps.
             // Exclude helper tools, background daemons, and hidden applications.
