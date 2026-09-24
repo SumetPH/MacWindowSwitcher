@@ -5,6 +5,20 @@ import CoreGraphics
 class WindowCollector {
     typealias WindowInfoGroup = (pid: pid_t, infos: [[String: Any]])
 
+    static func focusedWindowID() -> CGWindowID? {
+        guard let pid = NSWorkspace.shared.frontmostApplication?.processIdentifier,
+              let getWindow = PrivateApis.AXUIElementGetWindow else { return nil }
+        let app = AXUIElementCreateApplication(pid)
+        AXUIElementSetMessagingTimeout(app, 0.1)
+        var focusedRef: AnyObject?
+        guard AXUIElementCopyAttributeValue(app, kAXFocusedWindowAttribute as CFString, &focusedRef) == .success,
+              let focusedRef,
+              CFGetTypeID(focusedRef) == AXUIElementGetTypeID() else { return nil }
+        let focusedWindow = focusedRef as! AXUIElement
+        var windowID: CGWindowID = 0
+        return getWindow(focusedWindow, &windowID) == .success ? windowID : nil
+    }
+
     /// Groups windows without losing the front-to-back owner order from Core Graphics.
     static func groupWindowInfosPreservingOwnerOrder(
         _ infoList: [[String: Any]],

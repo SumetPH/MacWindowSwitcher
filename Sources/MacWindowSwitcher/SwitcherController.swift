@@ -7,6 +7,8 @@ class SwitcherController: KeyboardEventTapDelegate {
     private var candidates: [WindowCandidate] = []
     private var selectedIndex: Int = 0
     private var isSwitcherActive: Bool = false
+    private var screenHistory = ScreenCycleHistory()
+    private var activeDisplayID: CGDirectDisplayID?
     
     private var overlayWindow: SwitcherOverlayWindow?
     private var overlayView: SwitcherOverlayView?
@@ -37,7 +39,20 @@ class SwitcherController: KeyboardEventTapDelegate {
                     // 1. First trigger: Scan and collect windows
                     let allCandidates = WindowCollector.collectCandidates()
                     let spaceFiltered = filterByCurrentSpace(allCandidates)
-                    let screenFiltered = filterByScreenContainingMouse(spaceFiltered)
+                    let mouseScreen = ScreenManager.getScreenContainingMouse()
+                    var screenFiltered = filterByScreen(spaceFiltered, screen: mouseScreen)
+                    activeDisplayID = (mouseScreen?.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber)?.uint32Value
+                    if let activeDisplayID {
+                        let focusedID = WindowCollector.focusedWindowID()
+                        let focusedOnScreen = screenFiltered.contains { $0.windowID == focusedID } ? focusedID : nil
+                        let order = screenHistory.orderedWindowIDs(
+                            displayID: activeDisplayID,
+                            available: screenFiltered.map(\.windowID),
+                            focused: focusedOnScreen
+                        )
+                        let candidatesByID = Dictionary(uniqueKeysWithValues: screenFiltered.map { ($0.windowID, $0) })
+                        screenFiltered = order.compactMap { candidatesByID[$0] }
+                    }
                     
                     // Cap candidates to a reasonable maximum (e.g. 8) to fit on screen
                     let maxCandidates = 8
@@ -110,6 +125,10 @@ class SwitcherController: KeyboardEventTapDelegate {
             
             hideOverlay()
             isSwitcherActive = false
+
+            if let activeDisplayID {
+                screenHistory.remember(targetCandidate.windowID, on: activeDisplayID)
+            }
             
             WindowActivator.activate(candidate: targetCandidate)
             
@@ -139,14 +158,14 @@ class SwitcherController: KeyboardEventTapDelegate {
         }
     }
     
-    private func filterByScreenContainingMouse(_ list: [WindowCandidate]) -> [WindowCandidate] {
-        guard let mouseScreen = ScreenManager.getScreenContainingMouse() else {
+    private func filterByScreen(_ list: [WindowCandidate], screen: NSScreen?) -> [WindowCandidate] {
+        guard let screen else {
             return list
         }
         
         return list.filter { candidate in
             let winScreen = ScreenManager.getScreenWithLargestIntersection(forCGFrame: candidate.cgBounds)
-            return winScreen == mouseScreen
+            return winScreen == screen
         }
     }
     
@@ -201,5 +220,32 @@ class SwitcherController: KeyboardEventTapDelegate {
         overlayWindow?.close()
         overlayWindow = nil
         overlayView = nil
+    }
+}
+
+struct ScreenCycleHistory {
+    private var recentByDisplay: [CGDirectDisplayID: [CGWindowID]] = [:]
+
+    mutating func orderedWindowIDs(
+        displayID: CGDirectDisplayID,
+        available: [CGWindowID],
+        focused: CGWindowID?
+    ) -> [CGWindowID] {
+        guard !available.isEmpty else { return [] }
+        let availableSet = Set(available)
+        var order = (recentByDisplay[displayID] ?? []).filter { availableSet.contains($0) }
+        order.append(contentsOf: available.filter { !order.contains($0) })
+        if let focused, let index = order.firstIndex(of: focused) {
+            order.insert(order.remove(at: index), at: 0)
+        }
+        recentByDisplay[displayID] = order
+        return order
+    }
+
+    mutating func remember(_ windowID: CGWindowID, on displayID: CGDirectDisplayID) {
+        var order = recentByDisplay[displayID] ?? []
+        order.removeAll { $0 == windowID }
+        order.insert(windowID, at: 0)
+        recentByDisplay[displayID] = order
     }
 }
