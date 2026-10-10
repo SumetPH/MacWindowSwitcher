@@ -39,12 +39,21 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Check for accessibility permissions at startup
         if PermissionManager.checkAccessibilityPermission() {
             startApp()
-            menuBarController?.showPanelTemporarilyIfNeeded()
+            if !Self.wasLaunchedAsLoginItem() {
+                menuBarController?.showPanelTemporarilyIfNeeded()
+            }
         } else {
             // Trigger prompt and show custom instructions window
             PermissionManager.requestAccessibilityPermissionPrompt()
             showPermissionWindow()
         }
+    }
+
+    // Only valid while handling the launch ('oapp') Apple event, i.e. in applicationDidFinishLaunching.
+    private static func wasLaunchedAsLoginItem() -> Bool {
+        let event = NSAppleEventManager.shared().currentAppleEvent
+        return event?.eventID == kAEOpenApplication
+            && event?.paramDescriptor(forKeyword: keyAEPropData)?.enumCodeValue == keyAELaunchedAsLogInItem
     }
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
