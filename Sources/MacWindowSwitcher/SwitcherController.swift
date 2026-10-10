@@ -120,23 +120,24 @@ class SwitcherController: KeyboardEventTapDelegate {
         let commandPressed = flags.contains(.maskCommand)
         
         if isSwitcherActive && !commandPressed {
-            // Confirm selection and activate window
-            let targetCandidate = candidates[selectedIndex]
-            
-            hideOverlay()
-            isSwitcherActive = false
-
-            if let activeDisplayID {
-                screenHistory.remember(targetCandidate.windowID, on: activeDisplayID)
-            }
-            
-            WindowActivator.activate(candidate: targetCandidate)
-            
-            // Let the modifier release pass through to system cleanly
-            return false
+            confirmSelection(index: selectedIndex)
         }
         
+        // Let the modifier release pass through to system cleanly.
         return false
+    }
+
+    private func confirmSelection(index: Int) {
+        guard isSwitcherActive, candidates.indices.contains(index) else { return }
+        let targetCandidate = candidates[index]
+        isSwitcherActive = false
+        hideOverlay()
+
+        if let activeDisplayID {
+            screenHistory.remember(targetCandidate.windowID, on: activeDisplayID)
+        }
+
+        WindowActivator.activate(candidate: targetCandidate)
     }
     
     // MARK: - Filtering Methods
@@ -205,7 +206,9 @@ class SwitcherController: KeyboardEventTapDelegate {
         hideOverlay()
         
         let window = SwitcherOverlayWindow(contentRect: rect)
-        let view = SwitcherOverlayView(candidates: candidates, selectedIndex: selectedIndex)
+        let view = SwitcherOverlayView(candidates: candidates, selectedIndex: selectedIndex) { [weak self] index in
+            self?.confirmSelection(index: index)
+        }
         
         window.contentView = view
         self.overlayWindow = window

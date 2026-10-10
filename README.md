@@ -59,7 +59,7 @@ CODE_SIGN_IDENTITY=- ./Scripts/build-app.sh
 2. Grant Accessibility permission when prompted.
 3. Press `Cmd+Tab` to open the switcher.
 4. Keep holding Command and press `Tab` or `Shift+Tab` to cycle.
-5. Release Command to activate the selected window.
+5. Release Command to activate the selected window, or left-click a card while holding Command to activate that window and close the switcher immediately.
 6. Press `Esc` while the overlay is open to cancel.
 
 ## Project Layout

@@ -15,6 +15,7 @@ class SwitcherOverlayWindow: NSPanel {
         self.level = .statusBar
         self.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         self.ignoresMouseEvents = false // Keep false so mouse hover events can be tracked
+        self.isMovable = false // Command-click must select a card instead of dragging the panel.
         self.hidesOnDeactivate = false
         self.animationBehavior = .none
     }

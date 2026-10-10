@@ -4,6 +4,7 @@ class CandidateCardView: NSView {
     private let iconView = NSImageView()
     private let appNameLabel = NSTextField(labelWithString: "")
     private let titleLabel = NSTextField(labelWithString: "")
+    var onClick: (() -> Void)?
     
     var isSelected: Bool = false {
         didSet {
@@ -53,6 +54,19 @@ class CandidateCardView: NSView {
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
+
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool {
+        return true
+    }
+
+    override func hitTest(_ point: NSPoint) -> NSView? {
+        // Route clicks on the icon and labels to the whole card.
+        return super.hitTest(point) == nil ? nil : self
+    }
+
+    override func mouseDown(with event: NSEvent) {
+        onClick?()
+    }
     
     private func setupConstraints() {
         NSLayoutConstraint.activate([
@@ -99,7 +113,7 @@ class SwitcherOverlayView: NSView {
     private let stackView = NSStackView()
     private var cardViews: [CandidateCardView] = []
     
-    init(candidates: [WindowCandidate], selectedIndex: Int) {
+    init(candidates: [WindowCandidate], selectedIndex: Int, onSelect: @escaping (Int) -> Void) {
         super.init(frame: .zero)
         
         // Configure dark translucent blur backdrop panel
@@ -123,6 +137,7 @@ class SwitcherOverlayView: NSView {
         // Populate window cards
         for (index, candidate) in candidates.enumerated() {
             let card = CandidateCardView(candidate: candidate)
+            card.onClick = { onSelect(index) }
             card.isSelected = (index == selectedIndex)
             stackView.addArrangedSubview(card)
             cardViews.append(card)
