@@ -1,4 +1,5 @@
 import AppKit
+import MacWindowSwitcherCore
 
 class CandidateCardView: NSView {
     private let iconView = NSImageView()
@@ -71,8 +72,8 @@ class CandidateCardView: NSView {
     private func setupConstraints() {
         NSLayoutConstraint.activate([
             // Fixed card dimension bounds
-            self.widthAnchor.constraint(equalToConstant: 160),
-            self.heightAnchor.constraint(equalToConstant: 120),
+            self.widthAnchor.constraint(equalToConstant: SwitcherLayout.cardWidth),
+            self.heightAnchor.constraint(equalToConstant: SwitcherLayout.cardHeight),
             
             // Icon layout bounds
             iconView.centerXAnchor.constraint(equalTo: self.centerXAnchor),
@@ -128,8 +129,9 @@ class SwitcherOverlayView: NSView {
         
         // Configure stack layout
         stackView.orientation = .horizontal
-        stackView.spacing = 10
-        stackView.edgeInsets = NSEdgeInsets(top: 14, left: 14, bottom: 14, right: 14)
+        stackView.spacing = SwitcherLayout.cardSpacing
+        let padding = SwitcherLayout.padding
+        stackView.edgeInsets = NSEdgeInsets(top: padding, left: padding, bottom: padding, right: padding)
         stackView.alignment = .centerY
         stackView.translatesAutoresizingMaskIntoConstraints = false
         visualEffectView.addSubview(stackView)

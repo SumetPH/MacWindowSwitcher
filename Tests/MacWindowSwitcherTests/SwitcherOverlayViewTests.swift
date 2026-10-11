@@ -1,21 +1,21 @@
 import AppKit
-import XCTest
+import Testing
 @testable import MacWindowSwitcher
 
 @MainActor
-final class SwitcherOverlayViewTests: XCTestCase {
-    func testAcceptsFirstClickWithoutTakingKeyboardFocus() async {
+@Suite struct SwitcherOverlayViewTests {
+    @Test func acceptsFirstClickWithoutTakingKeyboardFocus() async {
         let card = CandidateCardView(candidate: candidate(id: 1))
-        XCTAssertTrue(card.acceptsFirstMouse(for: nil))
+        #expect(card.acceptsFirstMouse(for: nil))
 
         let panel = SwitcherOverlayWindow(contentRect: NSRect(x: 0, y: 0, width: 358, height: 148))
-        XCTAssertFalse(panel.canBecomeKey)
-        XCTAssertFalse(panel.canBecomeMain)
-        XCTAssertFalse(panel.ignoresMouseEvents)
-        XCTAssertFalse(panel.isMovable)
+        #expect(!panel.canBecomeKey)
+        #expect(!panel.canBecomeMain)
+        #expect(!panel.ignoresMouseEvents)
+        #expect(!panel.isMovable)
     }
 
-    func testCommandClickOnEveryCardPartSendsCorrectIndex() async throws {
+    @Test func commandClickOnEveryCardPartSendsCorrectIndex() async throws {
         var selections: [Int] = []
         let view = SwitcherOverlayView(candidates: [candidate(id: 1), candidate(id: 2)], selectedIndex: 0) {
             selections.append($0)
@@ -23,7 +23,7 @@ final class SwitcherOverlayViewTests: XCTestCase {
         view.frame = NSRect(x: 0, y: 0, width: 358, height: 148)
         view.layoutSubtreeIfNeeded()
         let cards = cardViews(in: view)
-        XCTAssertEqual(cards.count, 2)
+        try #require(cards.count == 2)
 
         for (index, card) in cards.enumerated() {
             // Card background, icon, app name, and window title.
@@ -32,10 +32,10 @@ final class SwitcherOverlayViewTests: XCTestCase {
             }
             for point in points {
                 let location = view.convert(point, from: card)
-                let target = try XCTUnwrap(view.hitTest(location))
-                XCTAssertTrue(target === card)
-                XCTAssertTrue(target.acceptsFirstMouse(for: nil))
-                let event = try XCTUnwrap(NSEvent.mouseEvent(
+                let target = try #require(view.hitTest(location))
+                #expect(target === card)
+                #expect(target.acceptsFirstMouse(for: nil))
+                let event = try #require(NSEvent.mouseEvent(
                     with: .leftMouseDown,
                     location: location,
                     modifierFlags: [.command],
@@ -48,23 +48,23 @@ final class SwitcherOverlayViewTests: XCTestCase {
                 ))
                 let countBefore = selections.count
                 target.mouseDown(with: event)
-                XCTAssertEqual(selections.count, countBefore + 1)
-                XCTAssertEqual(selections.last, index)
+                #expect(selections.count == countBefore + 1)
+                #expect(selections.last == index)
             }
         }
 
         view.updateSelection(index: 1)
-        XCTAssertFalse(cards[0].isSelected)
-        XCTAssertTrue(cards[1].isSelected)
+        #expect(!cards[0].isSelected)
+        #expect(cards[1].isSelected)
     }
 
-    func testCardDoesNotCaptureClicksOutsideItsBounds() async {
+    @Test func cardDoesNotCaptureClicksOutsideItsBounds() async {
         let parent = NSView(frame: NSRect(x: 0, y: 0, width: 200, height: 160))
         let card = CandidateCardView(candidate: candidate(id: 1))
         parent.addSubview(card)
         card.frame = NSRect(x: 10, y: 10, width: 160, height: 120)
-        XCTAssertNil(card.hitTest(NSPoint(x: 5, y: 5)))
-        XCTAssertFalse(parent.hitTest(NSPoint(x: 5, y: 5)) === card)
+        #expect(card.hitTest(NSPoint(x: 5, y: 5)) == nil)
+        #expect(!(parent.hitTest(NSPoint(x: 5, y: 5)) === card))
     }
 
     private func cardViews(in view: NSView) -> [CandidateCardView] {

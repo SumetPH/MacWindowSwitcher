@@ -65,10 +65,14 @@ CODE_SIGN_IDENTITY=- ./Scripts/build-app.sh
 ## Project Layout
 
 ```text
-Assets/                         App icon source
-Docs/                           Original implementation prompt and notes
-Scripts/build-app.sh            Builds and signs the .app bundle
-Scripts/dev-app.sh              Builds and runs the Swift executable
-Sources/MacWindowSwitcher/      App source
-Tests/                          Existing Swift package tests
+Assets/                                   App icon source
+Docs/                                     Original implementation prompt and notes
+Scripts/build-app.sh                      Builds and signs the .app bundle
+Scripts/dev-app.sh                        Builds and runs the Swift executable
+Sources/MacWindowSwitcher/App/            Entry point, AppDelegate, menu bar and switcher controllers
+Sources/MacWindowSwitcher/Views/          Overlay, menu bar, and permission windows/views
+Sources/MacWindowSwitcher/Services/       Event tap, permissions, private APIs, settings, window collection
+Sources/MacWindowSwitcherCore/            Pure logic: window filter rules, cycle history, layout math
+Tests/MacWindowSwitcherCoreTests/         Swift Testing tests for the Core library
+Tests/MacWindowSwitcherTests/             Swift Testing tests for AppKit overlay behavior
 ```

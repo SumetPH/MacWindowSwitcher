@@ -1,5 +1,9 @@
 import AppKit
 import CoreGraphics
+import MacWindowSwitcherCore
+import os
+
+private let logger = Logger.forCategory("SwitcherController")
 
 @MainActor
 class SwitcherController: KeyboardEventTapDelegate {
@@ -54,13 +58,8 @@ class SwitcherController: KeyboardEventTapDelegate {
                         screenFiltered = order.compactMap { candidatesByID[$0] }
                     }
                     
-                    // Cap candidates to a reasonable maximum (e.g. 8) to fit on screen
-                    let maxCandidates = 8
-                    if screenFiltered.count > maxCandidates {
-                        self.candidates = Array(screenFiltered.prefix(maxCandidates))
-                    } else {
-                        self.candidates = screenFiltered
-                    }
+                    // Cap candidates to a reasonable maximum to fit on screen
+                    self.candidates = Array(screenFiltered.prefix(SwitcherLayout.maxCandidates))
                     
                     if candidates.isEmpty {
                         // Suppress anyway to avoid native switcher showing
@@ -145,17 +144,15 @@ class SwitcherController: KeyboardEventTapDelegate {
     private func filterByCurrentSpace(_ list: [WindowCandidate]) -> [WindowCandidate] {
         let activeSpaces = SpaceManager.getActiveSpaceIDs()
         if activeSpaces.isEmpty {
-            NSLog("[MacWindowSwitcher] [SwitcherController] Active Spaces list empty. Skipping space filter.")
+            logger.info("Active Spaces list empty. Skipping space filter.")
             return list
         }
         
         return list.filter { candidate in
-            let windowSpaces = SpaceManager.getSpaceIDs(forWindowID: candidate.windowID)
-            // If API fails or window has no assigned spaces, retain it as fallback
-            if windowSpaces.isEmpty {
-                return true
-            }
-            return !activeSpaces.isDisjoint(with: windowSpaces)
+            WindowFilterRules.isOnActiveSpace(
+                windowSpaces: SpaceManager.getSpaceIDs(forWindowID: candidate.windowID),
+                activeSpaces: activeSpaces
+            )
         }
     }
     
@@ -173,24 +170,15 @@ class SwitcherController: KeyboardEventTapDelegate {
     // MARK: - Cycle & Overlay
     
     private func cycle(forward: Bool) {
-        guard !candidates.isEmpty else { return }
-        if forward {
-            selectedIndex = (selectedIndex + 1) % candidates.count
-        } else {
-            selectedIndex = (selectedIndex - 1 + candidates.count) % candidates.count
-        }
+        selectedIndex = SwitcherLayout.cycledIndex(from: selectedIndex, count: candidates.count, forward: forward)
     }
     
     private func showOverlay() {
         guard !candidates.isEmpty else { return }
         
-        let count = candidates.count
-        let cardWidth: CGFloat = 160
-        let spacing: CGFloat = 10
-        let padding: CGFloat = 14
-        
-        let width = CGFloat(padding * 2 + cardWidth * CGFloat(count) + spacing * CGFloat(count - 1))
-        let height: CGFloat = 120 + padding * 2
+        let size = SwitcherLayout.overlaySize(candidateCount: candidates.count)
+        let width = size.width
+        let height = size.height
         
         guard let screen = ScreenManager.getScreenContainingMouse() else { return }
         let screenFrame = screen.frame
@@ -223,32 +211,5 @@ class SwitcherController: KeyboardEventTapDelegate {
         overlayWindow?.close()
         overlayWindow = nil
         overlayView = nil
-    }
-}
-
-struct ScreenCycleHistory {
-    private var recentByDisplay: [CGDirectDisplayID: [CGWindowID]] = [:]
-
-    mutating func orderedWindowIDs(
-        displayID: CGDirectDisplayID,
-        available: [CGWindowID],
-        focused: CGWindowID?
-    ) -> [CGWindowID] {
-        guard !available.isEmpty else { return [] }
-        let availableSet = Set(available)
-        var order = (recentByDisplay[displayID] ?? []).filter { availableSet.contains($0) }
-        order.append(contentsOf: available.filter { !order.contains($0) })
-        if let focused, let index = order.firstIndex(of: focused) {
-            order.insert(order.remove(at: index), at: 0)
-        }
-        recentByDisplay[displayID] = order
-        return order
-    }
-
-    mutating func remember(_ windowID: CGWindowID, on displayID: CGDirectDisplayID) {
-        var order = recentByDisplay[displayID] ?? []
-        order.removeAll { $0 == windowID }
-        order.insert(windowID, at: 0)
-        recentByDisplay[displayID] = order
     }
 }

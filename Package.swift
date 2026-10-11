@@ -9,10 +9,16 @@ let package = Package(
     .executable(name: "MacWindowSwitcher", targets: ["MacWindowSwitcher"]),
   ],
   targets: [
+    .target(name: "MacWindowSwitcherCore"),
     .executableTarget(
       name: "MacWindowSwitcher",
-      dependencies: []
+      dependencies: ["MacWindowSwitcherCore"]
     ),
+    .testTarget(
+      name: "MacWindowSwitcherCoreTests",
+      dependencies: ["MacWindowSwitcherCore"]
+    ),
+    // AppKit view behavior (hit testing, panel focus) cannot live in Core.
     .testTarget(
       name: "MacWindowSwitcherTests",
       dependencies: ["MacWindowSwitcher"]

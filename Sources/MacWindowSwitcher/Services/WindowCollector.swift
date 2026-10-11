@@ -1,10 +1,12 @@
 import AppKit
 import ApplicationServices
 import CoreGraphics
+import MacWindowSwitcherCore
+import os
+
+private let logger = Logger.forCategory("WindowCollector")
 
 class WindowCollector {
-    typealias WindowInfoGroup = (pid: pid_t, infos: [[String: Any]])
-
     static func focusedWindowID() -> CGWindowID? {
         guard let pid = NSWorkspace.shared.frontmostApplication?.processIdentifier,
               let getWindow = PrivateApis.AXUIElementGetWindow else { return nil }
@@ -19,40 +21,11 @@ class WindowCollector {
         return getWindow(focusedWindow, &windowID) == .success ? windowID : nil
     }
 
-    /// Groups windows without losing the front-to-back owner order from Core Graphics.
-    static func groupWindowInfosPreservingOwnerOrder(
-        _ infoList: [[String: Any]],
-        frontmostPID: pid_t? = nil
-    ) -> [WindowInfoGroup] {
-        var ownerOrder: [pid_t] = []
-        var infosByPID: [pid_t: [[String: Any]]] = [:]
-
-        for info in infoList {
-            guard let pid = info[kCGWindowOwnerPID as String] as? pid_t else { continue }
-            if infosByPID[pid] == nil {
-                ownerOrder.append(pid)
-            }
-            infosByPID[pid, default: []].append(info)
-        }
-
-        var groups = ownerOrder.map { pid in
-            (pid: pid, infos: infosByPID[pid] ?? [])
-        }
-
-        if let frontmostPID,
-           let index = groups.firstIndex(where: { $0.pid == frontmostPID }),
-           index != 0 {
-            groups.insert(groups.remove(at: index), at: 0)
-        }
-
-        return groups
-    }
-
     /// Collects and filters all switchable window candidates across all applications.
     static func collectCandidates() -> [WindowCandidate] {
         let options = CGWindowListOption([.optionOnScreenOnly, .excludeDesktopElements])
         guard let infoList = CGWindowListCopyWindowInfo(options, kCGNullWindowID) as? [[String: Any]] else {
-            NSLog("[MacWindowSwitcher] [WindowCollector] Failed to retrieve window list.")
+            logger.error("Failed to retrieve window list.")
             return []
         }
         
@@ -61,7 +34,7 @@ class WindowCollector {
         let pidToApp = Dictionary(uniqueKeysWithValues: runningApps.map { ($0.processIdentifier, $0) })
         
         // Batch by application while retaining the front-to-back (last-focused) app order.
-        let windowInfoGroups = groupWindowInfosPreservingOwnerOrder(
+        let windowInfoGroups = WindowFilterRules.groupWindowInfosPreservingOwnerOrder(
             infoList,
             frontmostPID: NSWorkspace.shared.frontmostApplication?.processIdentifier
         )
@@ -96,16 +69,8 @@ class WindowCollector {
             }
             
             for info in infos {
-                guard let windowID = info[kCGWindowNumber as String] as? CGWindowID else { continue }
-                guard let layer = info[kCGWindowLayer as String] as? Int, layer == 0 else { continue }
-                
-                // Exclude invisible windows (alpha 0)
-                if let alpha = info[kCGWindowAlpha as String] as? Double, alpha == 0 { continue }
-                
-                // Exclude windows with invalid/empty/too small bounds (filter shadows/helpers)
-                guard let boundsDict = info[kCGWindowBounds as String] as? [String: Any],
-                      let bounds = CGRect(dictionaryRepresentation: boundsDict as CFDictionary) else { continue }
-                guard bounds.width > 50 && bounds.height > 50 else { continue }
+                // Layer, alpha, and bounds rules live in Core so they can be unit tested.
+                guard let (windowID, bounds) = WindowFilterRules.switchableWindow(from: info) else { continue }
                 
                 // Check minimized state or invalid AX roles
                 let axWindow = axWindowMap[windowID]
@@ -122,7 +87,7 @@ class WindowCollector {
                 let appName = app.localizedName ?? (info[kCGWindowOwnerName as String] as? String ?? "")
                 let cgWindowTitle = info[kCGWindowName as String] as? String ?? ""
                 let windowTitle = titleForWindow(cgTitle: cgWindowTitle, axWindow: axWindow)
-                if isTransientChromeFindWindow(appName: appName, title: windowTitle) {
+                if WindowFilterRules.isTransientHelperWindow(appName: appName, title: windowTitle) {
                     continue
                 }
                 
@@ -184,9 +149,5 @@ class WindowCollector {
         }
 
         return cgTitle
-    }
-
-    private static func isTransientChromeFindWindow(appName: String, title: String) -> Bool {
-        appName == "Google Chrome" && title == "Find in page"
     }
 }

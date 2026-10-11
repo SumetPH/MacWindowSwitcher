@@ -1,5 +1,8 @@
 import AppKit
 import ApplicationServices
+import os
+
+private let logger = Logger.forCategory("WindowActivator")
 
 class WindowActivator {
     /// Activates the owning application and raises the specific window candidate.
@@ -7,7 +10,7 @@ class WindowActivator {
         let pid = candidate.pid
         let windowID = candidate.windowID
         
-        NSLog("[MacWindowSwitcher] [WindowActivator] Activating app: \(candidate.appName) (PID: \(pid), Window: \(windowID))")
+        logger.info("Activating app: \(candidate.appName, privacy: .public) (PID: \(pid), Window: \(windowID))")
         
         // 1. Activate the owning application
         if let app = NSRunningApplication(processIdentifier: pid) {
@@ -20,7 +23,7 @@ class WindowActivator {
             focusAndRaise(axWindow: axWindow)
         } else {
             // Fallback: If AX reference was missing during collection, query it dynamically
-            NSLog("[MacWindowSwitcher] [WindowActivator] AX reference missing. Performing fallback scan.")
+            logger.info("AX reference missing. Performing fallback scan.")
             let appRef = AXUIElementCreateApplication(pid)
             AXUIElementSetMessagingTimeout(appRef, 0.1)
             var windowsRef: AnyObject?
@@ -43,7 +46,7 @@ class WindowActivator {
         // Perform AXRaise to bring the window to the front
         let raiseStatus = AXUIElementPerformAction(axWindow, kAXRaiseAction as CFString)
         if raiseStatus != .success {
-            NSLog("[MacWindowSwitcher] [WindowActivator] AXRaise action returned: \(raiseStatus.rawValue)")
+            logger.error("AXRaise action returned: \(raiseStatus.rawValue)")
         }
         
         // Set main attribute to true (primary window)

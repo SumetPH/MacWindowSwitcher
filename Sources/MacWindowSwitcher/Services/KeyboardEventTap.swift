@@ -1,5 +1,8 @@
 import AppKit
 @preconcurrency import CoreGraphics
+import os
+
+private let logger = Logger.forCategory("KeyboardEventTap")
 
 @MainActor
 protocol KeyboardEventTapDelegate: AnyObject {
@@ -34,7 +37,7 @@ private func keyboardEventCallback(
             if let machPort = tap.machPort {
                 CGEvent.tapEnable(tap: machPort, enable: true)
             }
-            NSLog("[MacWindowSwitcher] [KeyboardEventTap] Re-enabled event tap due to timeout or user input disable.")
+            logger.info("Re-enabled event tap due to timeout or user input disable.")
         }
         return Unmanaged.passUnretained(event)
     }
@@ -95,20 +98,20 @@ class KeyboardEventTap {
         )
         
         guard let machPort else {
-            NSLog("[MacWindowSwitcher] [KeyboardEventTap] Failed to create event tap. Accessibility permission is likely missing.")
+            logger.error("Failed to create event tap. Accessibility permission is likely missing.")
             return false
         }
         
         runLoopSource = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, machPort, 0)
         guard let runLoopSource else {
-            NSLog("[MacWindowSwitcher] [KeyboardEventTap] Failed to create run loop source.")
+            logger.error("Failed to create run loop source.")
             return false
         }
         
         CFRunLoopAddSource(CFRunLoopGetMain(), runLoopSource, .commonModes)
         CGEvent.tapEnable(tap: machPort, enable: true)
         
-        NSLog("[MacWindowSwitcher] [KeyboardEventTap] Event tap started successfully.")
+        logger.info("Event tap started successfully.")
         return true
     }
     
@@ -122,6 +125,6 @@ class KeyboardEventTap {
         }
         machPort = nil
         runLoopSource = nil
-        NSLog("[MacWindowSwitcher] [KeyboardEventTap] Event tap stopped.")
+        logger.info("Event tap stopped.")
     }
 }

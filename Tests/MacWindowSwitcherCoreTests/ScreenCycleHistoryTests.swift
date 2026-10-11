@@ -1,9 +1,9 @@
 import CoreGraphics
-import XCTest
-@testable import MacWindowSwitcher
+import MacWindowSwitcherCore
+import Testing
 
-final class ScreenCycleHistoryTests: XCTestCase {
-    func testOtherDisplayDoesNotChangePreviousAppOnThisDisplay() {
+@Suite struct ScreenCycleHistoryTests {
+    @Test func otherDisplayDoesNotChangePreviousAppOnThisDisplay() {
         var history = ScreenCycleHistory()
         let vscode: CGWindowID = 1
         let finder: CGWindowID = 2
@@ -14,9 +14,9 @@ final class ScreenCycleHistoryTests: XCTestCase {
         history.remember(finder, on: 1)
         _ = history.orderedWindowIDs(displayID: 1, available: [finder, vscode, chromeOnFirst], focused: vscode)
         _ = history.orderedWindowIDs(displayID: 2, available: [chromeOnSecond], focused: chromeOnSecond)
-        XCTAssertEqual(
-            history.orderedWindowIDs(displayID: 1, available: [chromeOnFirst, vscode, finder], focused: nil),
-            [vscode, finder, chromeOnFirst]
+        #expect(
+            history.orderedWindowIDs(displayID: 1, available: [chromeOnFirst, vscode, finder], focused: nil)
+                == [vscode, finder, chromeOnFirst]
         )
 
         let order = history.orderedWindowIDs(
@@ -24,7 +24,7 @@ final class ScreenCycleHistoryTests: XCTestCase {
             available: [chromeOnFirst, vscode, finder],
             focused: vscode
         )
-        XCTAssertEqual(order, [vscode, finder, chromeOnFirst])
-        XCTAssertEqual(order[1], finder)
+        #expect(order == [vscode, finder, chromeOnFirst])
+        #expect(order[1] == finder)
     }
 }

@@ -1,9 +1,9 @@
 import CoreGraphics
-import XCTest
-@testable import MacWindowSwitcher
+import MacWindowSwitcherCore
+import Testing
 
-final class WindowCollectorTests: XCTestCase {
-    func testGroupsWindowsByFirstSeenOwnerOrder() {
+@Suite struct WindowInfoGroupingTests {
+    @Test func groupsWindowsByFirstSeenOwnerOrder() {
         let windowInfos: [[String: Any]] = [
             [kCGWindowOwnerPID as String: pid_t(30), kCGWindowNumber as String: CGWindowID(301)],
             [kCGWindowOwnerPID as String: pid_t(10), kCGWindowNumber as String: CGWindowID(101)],
@@ -11,24 +11,24 @@ final class WindowCollectorTests: XCTestCase {
             [kCGWindowOwnerPID as String: pid_t(20), kCGWindowNumber as String: CGWindowID(201)],
         ]
 
-        let groups = WindowCollector.groupWindowInfosPreservingOwnerOrder(windowInfos)
+        let groups = WindowFilterRules.groupWindowInfosPreservingOwnerOrder(windowInfos)
 
-        XCTAssertEqual(groups.map(\.pid), [30, 10, 20])
-        XCTAssertEqual(groups.map { $0.infos.count }, [2, 1, 1])
+        #expect(groups.map(\.pid) == [30, 10, 20])
+        #expect(groups.map { $0.infos.count } == [2, 1, 1])
     }
 
-    func testPlacesFrontmostApplicationBeforeStaleWindowOrder() {
+    @Test func placesFrontmostApplicationBeforeStaleWindowOrder() {
         let windowInfos: [[String: Any]] = [
             [kCGWindowOwnerPID as String: pid_t(30), kCGWindowNumber as String: CGWindowID(301)],
             [kCGWindowOwnerPID as String: pid_t(10), kCGWindowNumber as String: CGWindowID(101)],
             [kCGWindowOwnerPID as String: pid_t(20), kCGWindowNumber as String: CGWindowID(201)],
         ]
 
-        let groups = WindowCollector.groupWindowInfosPreservingOwnerOrder(
+        let groups = WindowFilterRules.groupWindowInfosPreservingOwnerOrder(
             windowInfos,
             frontmostPID: 10
         )
 
-        XCTAssertEqual(groups.map(\.pid), [10, 30, 20])
+        #expect(groups.map(\.pid) == [10, 30, 20])
     }
 }

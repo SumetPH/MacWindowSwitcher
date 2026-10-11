@@ -1,5 +1,8 @@
 import Foundation
 import CoreGraphics
+import os
+
+private let logger = Logger.forCategory("SpaceManager")
 
 class SpaceManager {
     /// Returns the set of active Space IDs across all connected displays.
@@ -8,13 +11,13 @@ class SpaceManager {
         
         guard let connFunc = PrivateApis.SLSMainConnectionID,
               let copyFunc = PrivateApis.CGSCopyManagedDisplaySpaces else {
-            NSLog("[MacWindowSwitcher] [SpaceManager] SLSMainConnectionID or CGSCopyManagedDisplaySpaces is not available.")
+            logger.error("SLSMainConnectionID or CGSCopyManagedDisplaySpaces is not available.")
             return activeSpaces
         }
         
         let conn = connFunc()
         guard let displaySpaces = copyFunc(conn) as? [[String: Any]] else {
-            NSLog("[MacWindowSwitcher] [SpaceManager] Failed to get managed display spaces.")
+            logger.error("Failed to get managed display spaces.")
             return activeSpaces
         }
         

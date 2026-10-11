@@ -1,6 +1,9 @@
 import Combine
 import Foundation
 import ServiceManagement
+import os
+
+private let logger = Logger.forCategory("AppSettings")
 
 @MainActor
 final class AppSettings: ObservableObject {
@@ -56,7 +59,7 @@ final class AppSettings: ObservableObject {
         do {
           try service.register()
         } catch {
-          print("Failed to register SMAppService: \(error)")
+          logger.error("Failed to register SMAppService: \(String(describing: error), privacy: .public)")
         }
       }
     } else {
@@ -64,7 +67,7 @@ final class AppSettings: ObservableObject {
         do {
           try service.unregister()
         } catch {
-          print("Failed to unregister SMAppService: \(error)")
+          logger.error("Failed to unregister SMAppService: \(String(describing: error), privacy: .public)")
         }
       }
     }
